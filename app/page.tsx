@@ -1,69 +1,319 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import * as React from 'react';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Container,
+  Box,
+  Tabs,
+  Tab,
+  Button,
+  Stack,
+  CircularProgress,
+  Snackbar,
+  Alert,
+} from '@mui/material';
+import {
+  CalendarMonthIcon,
+  PeopleIcon,
+  SchoolIcon,
+} from '@/components/Icons';
+import CalendarView from '@/components/CalendarView';
+import CurriculumView from '@/components/CurriculumView';
+import StudentsClassesView from '@/components/StudentsClassesView';
+import LessonDialog from '@/components/LessonDialog';
+import StudentDialog from '@/components/StudentDialog';
+import ClassDialog from '@/components/ClassDialog';
+import { StorageAPI } from '@/lib/storage';
+import { ScheduleSlot, Student, ClassItem, Course } from '@/types/database';
+
+export default function HomePage() {
+  const [currentTab, setCurrentTab] = React.useState<number>(0);
+
+  const [loading, setLoading] = React.useState(true);
+  const [slots, setSlots] = React.useState<ScheduleSlot[]>([]);
+  const [students, setStudents] = React.useState<Student[]>([]);
+  const [classes, setClasses] = React.useState<
+    (ClassItem & { members_count?: number; student_ids?: string[] })[]
+  >([]);
+  const [courses, setCourses] = React.useState<Course[]>([]);
+
+  const [slotDialogOpen, setSlotDialogOpen] = React.useState(false);
+  const [selectedSlot, setSelectedSlot] = React.useState<ScheduleSlot | null>(null);
+  const [defaultDayOfWeek, setDefaultDayOfWeek] = React.useState<number>(1);
+
+  const [studentDialogOpen, setStudentDialogOpen] = React.useState(false);
+  const [selectedStudent, setSelectedStudent] = React.useState<Student | null>(null);
+
+  const [classDialogOpen, setClassDialogOpen] = React.useState(false);
+  const [selectedClass, setSelectedClass] = React.useState<ClassItem | null>(null);
+
+  const [toastMessage, setToastMessage] = React.useState<string | null>(null);
+
+  const loadData = React.useCallback(async () => {
+    try {
+      const [slotData, sData, cData, mData, courseData] = await Promise.all([
+        StorageAPI.getScheduleSlots(),
+        StorageAPI.getStudents(),
+        StorageAPI.getClasses(),
+        StorageAPI.getClassMembers(),
+        StorageAPI.getCourses(),
+      ]);
+
+      const classesWithCount = cData.map((c) => ({
+        ...c,
+        members_count: mData.filter((m) => m.class_id === c.id).length,
+        student_ids: mData.filter((m) => m.class_id === c.id).map((m) => m.student_id),
+      }));
+
+      setSlots(slotData);
+      setStudents(sData);
+      setClasses(classesWithCount);
+      setCourses(courseData);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleOpenCreateSlot = (dayOfWeek?: number) => {
+    setSelectedSlot(null);
+    setDefaultDayOfWeek(dayOfWeek ?? 1);
+    setSlotDialogOpen(true);
+  };
+
+  const handleEditSlot = (slot: ScheduleSlot) => {
+    setSelectedSlot(slot);
+    setSlotDialogOpen(true);
+  };
+
+  const handleSaveSlot = async (slotData: any) => {
+    await StorageAPI.saveScheduleSlot(slotData);
+    await loadData();
+    setToastMessage(slotData.id ? 'Đã cập nhật ca học!' : 'Đã thêm ca học cố định mới!');
+  };
+
+  const handleDeleteSlot = async (id: string) => {
+    await StorageAPI.deleteScheduleSlot(id);
+    await loadData();
+    setToastMessage('Đã xóa ca học');
+  };
+
+  const handleAddCourse = async (name: string, description?: string) => {
+    await StorageAPI.saveCourse({ name, description });
+    await loadData();
+    setToastMessage('Đã thêm khóa học mới!');
+  };
+
+  const handleDeleteCourse = async (id: string) => {
+    await StorageAPI.deleteCourse(id);
+    await loadData();
+    setToastMessage('Đã xóa khóa học');
+  };
+
+  const handleAddChapter = async (courseId: string, title: string) => {
+    await StorageAPI.addChapter(courseId, title);
+    await loadData();
+    setToastMessage('Đã thêm Chapter mới!');
+  };
+
+  const handleDeleteChapter = async (courseId: string, chapterId: string) => {
+    await StorageAPI.deleteChapter(courseId, chapterId);
+    await loadData();
+    setToastMessage('Đã xóa Chapter');
+  };
+
+  const handleAddTopic = async (courseId: string, chapterId: string, title: string) => {
+    await StorageAPI.addTopic(courseId, chapterId, title);
+    await loadData();
+    setToastMessage('Đã thêm bài học!');
+  };
+
+  const handleToggleTopic = async (courseId: string, chapterId: string, topicId: string) => {
+    await StorageAPI.toggleTopic(courseId, chapterId, topicId);
+    await loadData();
+  };
+
+  const handleDeleteTopic = async (courseId: string, chapterId: string, topicId: string) => {
+    await StorageAPI.deleteTopic(courseId, chapterId, topicId);
+    await loadData();
+    setToastMessage('Đã xóa bài học');
+  };
+
+  const handleSaveStudent = async (studentData: { id?: string; name: string; phone?: string; note?: string }) => {
+    await StorageAPI.saveStudent(studentData);
+    await loadData();
+    setToastMessage(studentData.id ? 'Cập nhật học viên thành công!' : 'Thêm học viên thành công!');
+  };
+
+  const handleDeleteStudent = async (id: string) => {
+    await StorageAPI.deleteStudent(id);
+    await loadData();
+    setToastMessage('Đã xóa học viên');
+  };
+
+  const handleSaveClass = async (
+    clsData: { id?: string; name: string; note?: string },
+    studentIds: string[]
+  ) => {
+    await StorageAPI.saveClass(clsData, studentIds);
+    await loadData();
+    setToastMessage(clsData.id ? 'Cập nhật lớp học thành công!' : 'Tạo lớp học thành công!');
+  };
+
+  const handleDeleteClass = async (id: string) => {
+    await StorageAPI.deleteClass(id);
+    await loadData();
+    setToastMessage('Đã xóa lớp học');
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8f9fa' }}>
+      <AppBar position="sticky" sx={{ bgcolor: '#ffffff', color: '#202124', borderBottom: '1px solid #dadce0' }}>
+        <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 1.5, sm: 3 } }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+            <CalendarMonthIcon sx={{ color: '#1a73e8', fontSize: 28 }} />
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: '#202124', lineHeight: 1.1 }}>
+                ClassPlan
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#5f6368', fontSize: '0.7rem' }}>
+                Lịch Dạy Online & Lộ Trình Khóa Học
+              </Typography>
+            </Box>
+          </Stack>
+
+        </Toolbar>
+
+        <Box sx={{ borderTop: '1px solid #e8eaed', px: { xs: 1, sm: 3 }, bgcolor: '#ffffff' }}>
+          <Tabs
+            value={currentTab}
+            onChange={(_, val) => setCurrentTab(val)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              minHeight: 48,
+              '& .MuiTab-root': {
+                minHeight: 48,
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                color: '#5f6368',
+                '&.Mui-selected': { color: '#1a73e8' },
+              },
+              '& .MuiTabs-indicator': {
+                backgroundColor: '#1a73e8',
+                height: 3,
+              },
+            }}
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            <Tab icon={<CalendarMonthIcon sx={{ fontSize: 18, mr: 0.5 }} />} iconPosition="start" label="Lịch Dạy Cố Định" />
+            <Tab icon={<SchoolIcon sx={{ fontSize: 18, mr: 0.5 }} />} iconPosition="start" label="Lộ Trình & Bài Học" />
+            <Tab icon={<PeopleIcon sx={{ fontSize: 18, mr: 0.5 }} />} iconPosition="start" label="Học Viên & Lớp" />
+          </Tabs>
+        </Box>
+      </AppBar>
+
+      <Container maxWidth="xl" sx={{ py: { xs: 1.5, sm: 3 }, px: { xs: 1, sm: 3 }, flex: 1 }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+            <CircularProgress size={36} />
+          </Box>
+        ) : (
+          <>
+            {currentTab === 0 && (
+              <CalendarView
+                slots={slots}
+                students={students}
+                classes={classes}
+                onOpenCreate={handleOpenCreateSlot}
+                onEditSlot={handleEditSlot}
+              />
+            )}
+
+            {currentTab === 1 && (
+              <CurriculumView
+                courses={courses}
+                onAddCourse={handleAddCourse}
+                onDeleteCourse={handleDeleteCourse}
+                onAddChapter={handleAddChapter}
+                onDeleteChapter={handleDeleteChapter}
+                onAddTopic={handleAddTopic}
+                onToggleTopic={handleToggleTopic}
+                onDeleteTopic={handleDeleteTopic}
+              />
+            )}
+
+            {currentTab === 2 && (
+              <StudentsClassesView
+                students={students}
+                classes={classes}
+                onAddStudent={() => {
+                  setSelectedStudent(null);
+                  setStudentDialogOpen(true);
+                }}
+                onEditStudent={(s) => {
+                  setSelectedStudent(s);
+                  setStudentDialogOpen(true);
+                }}
+                onDeleteStudent={handleDeleteStudent}
+                onAddClass={() => {
+                  setSelectedClass(null);
+                  setClassDialogOpen(true);
+                }}
+                onEditClass={(c) => {
+                  setSelectedClass(c);
+                  setClassDialogOpen(true);
+                }}
+                onDeleteClass={handleDeleteClass}
+              />
+            )}
+          </>
+        )}
+      </Container>
+
+      <LessonDialog
+        open={slotDialogOpen}
+        onClose={() => setSlotDialogOpen(false)}
+        onSaved={handleSaveSlot}
+        onDelete={handleDeleteSlot}
+        slot={selectedSlot}
+        students={students}
+        classes={classes}
+        defaultDayOfWeek={defaultDayOfWeek}
+      />
+
+      <StudentDialog
+        open={studentDialogOpen}
+        onClose={() => setStudentDialogOpen(false)}
+        onSave={handleSaveStudent}
+        student={selectedStudent}
+      />
+
+      <ClassDialog
+        open={classDialogOpen}
+        onClose={() => setClassDialogOpen(false)}
+        onSave={handleSaveClass}
+        classItem={selectedClass}
+        students={students}
+        currentStudentIds={selectedClass ? classes.find((c) => c.id === selectedClass.id)?.student_ids : []}
+      />
+
+      <Snackbar
+        open={Boolean(toastMessage)}
+        autoHideDuration={3000}
+        onClose={() => setToastMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" sx={{ width: '100%', borderRadius: 1 }}>
+          {toastMessage}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
