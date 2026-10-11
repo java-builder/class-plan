@@ -269,7 +269,7 @@ export const StorageAPI = {
     if (error) throw error;
   },
 
-  async addTopic(courseId: string, chapterId: string, title: string): Promise<void> {
+  async addTopic(courseId: string, chapterId: string, title: string, note?: string): Promise<void> {
     const supabase = createClient();
     if (!supabase) throw new Error('Supabase client chưa được cấu hình');
     const { count } = await (supabase as any)
@@ -279,6 +279,7 @@ export const StorageAPI = {
     const { error } = await (supabase as any).from('topics').insert({
       chapter_id: chapterId,
       title,
+      note: note || null,
       is_completed: false,
       order_num: (count || 0) + 1,
     });

@@ -32,16 +32,111 @@ const DAYS_HEADER = [
   { day: 0, label: 'Chủ Nhật', short: 'CN' },
 ];
 
+const GOOGLE_CALENDAR_PALETTE = [
+  { border: '#d93025', bg: '#fce8e6', text: '#a50e0e', chipBg: '#d93025' },
+  { border: '#1a73e8', bg: '#e8f0fe', text: '#174ea6', chipBg: '#1a73e8' },
+  { border: '#188038', bg: '#e6f4ea', text: '#0d652d', chipBg: '#188038' },
+  { border: '#9334e6', bg: '#f3e8fd', text: '#681da8', chipBg: '#9334e6' },
+  { border: '#e37400', bg: '#fef7e0', text: '#b06000', chipBg: '#e37400' },
+  { border: '#007b83', bg: '#e0f2f1', text: '#004d40', chipBg: '#007b83' },
+  { border: '#e52592', bg: '#fce4ec', text: '#880e4f', chipBg: '#e52592' },
+  { border: '#3949ab', bg: '#e8eaf6', text: '#1a237e', chipBg: '#3949ab' },
+  { border: '#558b2f', bg: '#f1f8e9', text: '#33691e', chipBg: '#558b2f' },
+  { border: '#e65100', bg: '#fff3e0', text: '#bf360c', chipBg: '#e65100' },
+  { border: '#00838f', bg: '#e0f7fa', text: '#006064', chipBg: '#00838f' },
+  { border: '#6a1b9a', bg: '#f3e5f5', text: '#4a148c', chipBg: '#6a1b9a' },
+];
+
 export default function CalendarView({
   slots,
-  students: _students,
-  classes: _classes,
+  students,
+  classes,
   onOpenCreate,
   onEditSlot,
 }: CalendarViewProps) {
   const [filterType, setFilterType] = React.useState<'all' | '1-1' | 'class'>('all');
   const todayDayOfWeek = new Date().getDay();
   const [selectedMobileDay, setSelectedMobileDay] = React.useState<number | 'all'>(todayDayOfWeek);
+
+  const colorMap = React.useMemo(() => {
+    const map = new Map<string, (typeof GOOGLE_CALENDAR_PALETTE)[0]>();
+    const registeredIds = new Set<string>();
+
+    const orderedStudents = [...students].sort((a, b) => a.name.localeCompare(b.name));
+    orderedStudents.forEach((st) => {
+      if (!registeredIds.has(st.id)) {
+        const palette = GOOGLE_CALENDAR_PALETTE[registeredIds.size % GOOGLE_CALENDAR_PALETTE.length];
+        registeredIds.add(st.id);
+        map.set(st.id, palette);
+        map.set(st.name.trim().toLowerCase(), palette);
+      }
+    });
+
+    const orderedClasses = [...classes].sort((a, b) => a.name.localeCompare(b.name));
+    orderedClasses.forEach((cls) => {
+      if (!registeredIds.has(cls.id)) {
+        const palette = GOOGLE_CALENDAR_PALETTE[(registeredIds.size + 4) % GOOGLE_CALENDAR_PALETTE.length];
+        registeredIds.add(cls.id);
+        map.set(cls.id, palette);
+        map.set(cls.name.trim().toLowerCase(), palette);
+      }
+    });
+
+    slots.forEach((s) => {
+      if (s.student_id && !map.has(s.student_id)) {
+        const palette = GOOGLE_CALENDAR_PALETTE[registeredIds.size % GOOGLE_CALENDAR_PALETTE.length];
+        registeredIds.add(s.student_id);
+        map.set(s.student_id, palette);
+        if (s.student?.name) {
+          map.set(s.student.name.trim().toLowerCase(), palette);
+        }
+      } else if (s.student?.name && !map.has(s.student.name.trim().toLowerCase())) {
+        const palette = GOOGLE_CALENDAR_PALETTE[registeredIds.size % GOOGLE_CALENDAR_PALETTE.length];
+        registeredIds.add(s.student.name.trim().toLowerCase());
+        map.set(s.student.name.trim().toLowerCase(), palette);
+      }
+
+      if (s.class_id && !map.has(s.class_id)) {
+        const palette = GOOGLE_CALENDAR_PALETTE[(registeredIds.size + 4) % GOOGLE_CALENDAR_PALETTE.length];
+        registeredIds.add(s.class_id);
+        map.set(s.class_id, palette);
+        if (s.class?.name) {
+          map.set(s.class.name.trim().toLowerCase(), palette);
+        }
+      } else if (s.class?.name && !map.has(s.class.name.trim().toLowerCase())) {
+        const palette = GOOGLE_CALENDAR_PALETTE[(registeredIds.size + 4) % GOOGLE_CALENDAR_PALETTE.length];
+        registeredIds.add(s.class.name.trim().toLowerCase());
+        map.set(s.class.name.trim().toLowerCase(), palette);
+      }
+    });
+
+    return map;
+  }, [students, classes, slots]);
+
+  const getSlotTheme = React.useCallback(
+    (slot: ScheduleSlot) => {
+      if (slot.student_id && colorMap.has(slot.student_id)) {
+        return colorMap.get(slot.student_id)!;
+      }
+      if (slot.student?.name && colorMap.has(slot.student.name.trim().toLowerCase())) {
+        return colorMap.get(slot.student.name.trim().toLowerCase())!;
+      }
+      if (slot.class_id && colorMap.has(slot.class_id)) {
+        return colorMap.get(slot.class_id)!;
+      }
+      if (slot.class?.name && colorMap.has(slot.class.name.trim().toLowerCase())) {
+        return colorMap.get(slot.class.name.trim().toLowerCase())!;
+      }
+      const key = slot.student_id || slot.class_id || slot.student?.name || slot.class?.name || slot.title || 'default';
+      let hash = 0;
+      for (let i = 0; i < key.length; i++) {
+        hash = (hash << 5) - hash + key.charCodeAt(i);
+        hash |= 0;
+      }
+      return GOOGLE_CALENDAR_PALETTE[Math.abs(hash) % GOOGLE_CALENDAR_PALETTE.length];
+    },
+    [colorMap]
+  );
 
   const filteredSlots = React.useMemo(() => {
     return slots.filter((s) => {
@@ -255,7 +350,13 @@ export default function CalendarView({
                   ) : (
                     <Stack spacing={1.25}>
                       {daySlots.map((slot) => (
-                        <SlotCard key={slot.id} slot={slot} onEdit={() => onEditSlot(slot)} isFullWidth />
+                        <SlotCard
+                          key={slot.id}
+                          slot={slot}
+                          theme={getSlotTheme(slot)}
+                          onEdit={() => onEditSlot(slot)}
+                          isFullWidth
+                        />
                       ))}
                     </Stack>
                   )}
@@ -332,7 +433,12 @@ export default function CalendarView({
                       </Box>
                     ) : (
                       daySlots.map((slot) => (
-                        <SlotCard key={slot.id} slot={slot} onEdit={() => onEditSlot(slot)} />
+                        <SlotCard
+                          key={slot.id}
+                          slot={slot}
+                          theme={getSlotTheme(slot)}
+                          onEdit={() => onEditSlot(slot)}
+                        />
                       ))
                     )}
                   </Box>
@@ -348,16 +454,16 @@ export default function CalendarView({
 
 function SlotCard({
   slot,
+  theme,
   onEdit,
   isFullWidth = false,
 }: {
   slot: ScheduleSlot;
+  theme: (typeof GOOGLE_CALENDAR_PALETTE)[0];
   onEdit: () => void;
   isFullWidth?: boolean;
 }) {
   const is1to1 = Boolean(slot.student_id);
-  const color = is1to1 ? '#1a73e8' : '#1e8e3e';
-  const bgColor = is1to1 ? '#e8f0fe' : '#e6f4ea';
 
   return (
     <Box
@@ -365,13 +471,14 @@ function SlotCard({
       sx={{
         p: 1.25,
         borderRadius: 1,
-        bgcolor: bgColor,
+        bgcolor: theme.bg,
         border: '1px solid #dadce0',
-        borderLeft: `5px solid ${color}`,
+        borderLeft: `5px solid ${theme.border}`,
         cursor: 'pointer',
-        transition: 'box-shadow 0.15s ease',
+        transition: 'all 0.15s ease',
         '&:hover': {
-          boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+          borderColor: theme.border,
         },
       }}
     >
@@ -380,14 +487,14 @@ function SlotCard({
           variant="caption"
           sx={{
             fontWeight: 700,
-            color,
+            color: theme.text,
             display: 'flex',
             alignItems: 'center',
             gap: 0.5,
             fontSize: isFullWidth ? '0.85rem' : '0.75rem',
           }}
         >
-          <AccessTimeIcon sx={{ fontSize: 14 }} />
+          <AccessTimeIcon sx={{ fontSize: 14, color: theme.text }} />
           {slot.start_time} - {slot.end_time}
         </Typography>
         <Chip
@@ -397,7 +504,7 @@ function SlotCard({
             height: 18,
             fontSize: '0.65rem',
             fontWeight: 700,
-            bgcolor: color,
+            bgcolor: theme.chipBg,
             color: '#fff',
             borderRadius: '2px',
           }}
@@ -433,10 +540,11 @@ function SlotCard({
           variant="caption"
           sx={{
             display: 'block',
-            color: '#1a73e8',
+            color: theme.text,
             fontSize: '0.75rem',
             wordBreak: 'break-all',
-            fontWeight: 500,
+            fontWeight: 600,
+            '&:hover': { textDecoration: 'underline' },
           }}
           noWrap={!isFullWidth}
           onClick={(e) => {

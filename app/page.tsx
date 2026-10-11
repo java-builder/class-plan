@@ -117,32 +117,52 @@ export default function HomePage() {
   };
 
   const handleAddChapter = async (courseId: string, title: string) => {
-    await StorageAPI.addChapter(courseId, title);
-    await loadData();
-    setToastMessage('Đã thêm Chapter mới!');
+    try {
+      await StorageAPI.addChapter(courseId, title);
+      await loadData();
+      setToastMessage('Đã thêm Chapter mới!');
+    } catch (err: any) {
+      setToastMessage(`Lỗi: ${err.message || 'Không thể thêm Chapter'}`);
+    }
   };
 
   const handleDeleteChapter = async (courseId: string, chapterId: string) => {
-    await StorageAPI.deleteChapter(courseId, chapterId);
-    await loadData();
-    setToastMessage('Đã xóa Chapter');
+    try {
+      await StorageAPI.deleteChapter(courseId, chapterId);
+      await loadData();
+      setToastMessage('Đã xóa Chapter');
+    } catch (err: any) {
+      setToastMessage(`Lỗi: ${err.message || 'Không thể xóa Chapter'}`);
+    }
   };
 
-  const handleAddTopic = async (courseId: string, chapterId: string, title: string) => {
-    await StorageAPI.addTopic(courseId, chapterId, title);
-    await loadData();
-    setToastMessage('Đã thêm bài học!');
+  const handleAddTopic = async (courseId: string, chapterId: string, title: string, note?: string) => {
+    try {
+      await StorageAPI.addTopic(courseId, chapterId, title, note);
+      await loadData();
+      setToastMessage('Đã thêm bài học!');
+    } catch (err: any) {
+      setToastMessage(`Lỗi: ${err.message || 'Không thể thêm bài học'}`);
+    }
   };
 
   const handleToggleTopic = async (courseId: string, chapterId: string, topicId: string) => {
-    await StorageAPI.toggleTopic(courseId, chapterId, topicId);
-    await loadData();
+    try {
+      await StorageAPI.toggleTopic(courseId, chapterId, topicId);
+      await loadData();
+    } catch (err: any) {
+      setToastMessage(`Lỗi: ${err.message || 'Không thể cập nhật bài học'}`);
+    }
   };
 
   const handleDeleteTopic = async (courseId: string, chapterId: string, topicId: string) => {
-    await StorageAPI.deleteTopic(courseId, chapterId, topicId);
-    await loadData();
-    setToastMessage('Đã xóa bài học');
+    try {
+      await StorageAPI.deleteTopic(courseId, chapterId, topicId);
+      await loadData();
+      setToastMessage('Đã xóa bài học');
+    } catch (err: any) {
+      setToastMessage(`Lỗi: ${err.message || 'Không thể xóa bài học'}`);
+    }
   };
 
   const handleSaveStudent = async (studentData: { id?: string; name: string; phone?: string; note?: string }) => {
