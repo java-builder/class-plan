@@ -18,6 +18,7 @@ import {
   Box,
 } from '@mui/material';
 import { ScheduleSlot, Student, ClassItem } from '@/types/database';
+import ConfirmDialog from './ConfirmDialog';
 
 interface LessonDialogProps {
   open: boolean;
@@ -72,6 +73,7 @@ export default function LessonDialog({
   const [location, setLocation] = React.useState('meet.google.com/');
   const [note, setNote] = React.useState('');
   const [saving, setSaving] = React.useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
@@ -141,7 +143,19 @@ export default function LessonDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      sx={{
+        '& .MuiDialog-paper': {
+          m: { xs: 2, sm: 3 },
+          width: '100%',
+          maxWidth: { xs: 'calc(100% - 32px)', sm: 600, md: 680 },
+        },
+      }}
+    >
       <DialogTitle sx={{ fontWeight: 600 }}>
         {isEdit ? 'Chỉnh sửa ca học cố định' : 'Thêm ca học cố định mới'}
       </DialogTitle>
@@ -153,6 +167,7 @@ export default function LessonDialog({
               row
               value={type}
               onChange={(e) => handleTypeChange(e.target.value as 'student' | 'class')}
+              sx={{ gap: { xs: 0.5, sm: 2 } }}
             >
               <FormControlLabel value="student" control={<Radio size="small" />} label="Dạy 1:1 (Cá nhân)" />
               <FormControlLabel value="class" control={<Radio size="small" />} label="Dạy theo Lớp học" />
@@ -270,12 +285,7 @@ export default function LessonDialog({
         {isEdit && onDelete ? (
           <Button
             color="error"
-            onClick={async () => {
-              if (window.confirm('Xóa ca học cố định này khỏi lịch?')) {
-                await onDelete(slot!.id);
-                onClose();
-              }
-            }}
+            onClick={() => setConfirmDeleteOpen(true)}
           >
             Xóa ca học
           </Button>
@@ -289,6 +299,20 @@ export default function LessonDialog({
           </Button>
         </Stack>
       </DialogActions>
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Xóa ca học cố định"
+        message="Bạn có chắc chắn muốn xóa ca học cố định này khỏi thời khóa biểu?"
+        onConfirm={async () => {
+          if (slot?.id && onDelete) {
+            await onDelete(slot.id);
+            setConfirmDeleteOpen(false);
+            onClose();
+          }
+        }}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
     </Dialog>
   );
 }

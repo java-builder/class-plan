@@ -19,11 +19,10 @@ import {
   Paper,
   Card,
   CardContent,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import { Student, ClassItem } from '@/types/database';
 import { EditIcon, DeleteIcon, AddIcon } from './Icons';
+import ConfirmDialog from './ConfirmDialog';
 
 interface StudentsClassesViewProps {
   students: Student[];
@@ -46,9 +45,42 @@ export default function StudentsClassesView({
   onEditClass,
   onDeleteClass,
 }: StudentsClassesViewProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [tab, setTab] = React.useState<0 | 1>(0);
+  const [confirmDialog, setConfirmDialog] = React.useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => Promise<void>;
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    onConfirm: async () => {},
+  });
+
+  const promptDeleteStudent = (student: Student) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Xóa học viên',
+      message: `Bạn có chắc chắn muốn xóa học viên "${student.name}"?`,
+      onConfirm: async () => {
+        await onDeleteStudent(student.id);
+        setConfirmDialog((prev) => ({ ...prev, open: false }));
+      },
+    });
+  };
+
+  const promptDeleteClass = (cls: ClassItem) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Xóa lớp học',
+      message: `Bạn có chắc chắn muốn xóa lớp học "${cls.name}"?`,
+      onConfirm: async () => {
+        await onDeleteClass(cls.id);
+        setConfirmDialog((prev) => ({ ...prev, open: false }));
+      },
+    });
+  };
 
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto' }}>
@@ -74,7 +106,7 @@ export default function StudentsClassesView({
             onClick={onAddStudent}
             sx={{ alignSelf: { xs: 'stretch', sm: 'auto' } }}
           >
-            + Thêm học viên
+            Thêm học viên
           </Button>
         ) : (
           <Button
@@ -84,7 +116,7 @@ export default function StudentsClassesView({
             onClick={onAddClass}
             sx={{ alignSelf: { xs: 'stretch', sm: 'auto' } }}
           >
-            + Tạo lớp học mới
+            Tạo lớp học mới
           </Button>
         )}
       </Stack>
@@ -96,10 +128,9 @@ export default function StudentsClassesView({
         </Tabs>
       </Paper>
 
-      {/* TAB 0: HỌC VIÊN */}
       {tab === 0 && (
-        isMobile ? (
-          <Stack spacing={1.5}>
+        <Box>
+          <Stack spacing={1.5} sx={{ display: { xs: 'flex', sm: 'none' } }}>
             {students.length === 0 ? (
               <Paper sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
                 Chưa có học viên nào.
@@ -109,17 +140,28 @@ export default function StudentsClassesView({
                 <Card key={s.id} sx={{ border: '1px solid #dadce0', borderRadius: 1 }}>
                   <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1a73e8' }}>
+                      <Box sx={{ flex: 1, pr: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1a73e8', wordBreak: 'break-word' }}>
                           {s.name}
                         </Typography>
                         {s.phone && (
-                          <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                          <Typography
+                            component="a"
+                            href={`tel:${s.phone}`}
+                            variant="caption"
+                            sx={{
+                              display: 'block',
+                              color: '#1a73e8',
+                              textDecoration: 'none',
+                              mt: 0.25,
+                              fontWeight: 500,
+                            }}
+                          >
                             📞 {s.phone}
                           </Typography>
                         )}
                         {s.note && (
-                          <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.25 }}>
+                          <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5, wordBreak: 'break-word' }}>
                             📝 {s.note}
                           </Typography>
                         )}
@@ -131,9 +173,7 @@ export default function StudentsClassesView({
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => {
-                            if (window.confirm(`Xóa học viên "${s.name}"?`)) onDeleteStudent(s.id);
-                          }}
+                          onClick={() => promptDeleteStudent(s)}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -144,8 +184,8 @@ export default function StudentsClassesView({
               ))
             )}
           </Stack>
-        ) : (
-          <TableContainer component={Paper} sx={{ border: '1px solid #dadce0', borderRadius: 1 }}>
+
+          <TableContainer component={Paper} sx={{ display: { xs: 'none', sm: 'block' }, border: '1px solid #dadce0', borderRadius: 1 }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -159,7 +199,7 @@ export default function StudentsClassesView({
                 {students.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                      Chưa có học viên nào. Bấm nút "+ Thêm học viên" để bắt đầu.
+                      Chưa có học viên nào. Bấm nút &quot;+ Thêm học viên&quot; để bắt đầu.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -179,9 +219,7 @@ export default function StudentsClassesView({
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => {
-                            if (window.confirm(`Xóa học viên "${s.name}"?`)) onDeleteStudent(s.id);
-                          }}
+                          onClick={() => promptDeleteStudent(s)}
                           title="Xóa"
                         >
                           <DeleteIcon fontSize="small" />
@@ -193,13 +231,12 @@ export default function StudentsClassesView({
               </TableBody>
             </Table>
           </TableContainer>
-        )
+        </Box>
       )}
 
-      {/* TAB 1: LỚP HỌC */}
       {tab === 1 && (
-        isMobile ? (
-          <Stack spacing={1.5}>
+        <Box>
+          <Stack spacing={1.5} sx={{ display: { xs: 'flex', sm: 'none' } }}>
             {classes.length === 0 ? (
               <Paper sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
                 Chưa có lớp học nào.
@@ -209,9 +246,9 @@ export default function StudentsClassesView({
                 <Card key={c.id} sx={{ border: '1px solid #dadce0', borderRadius: 1 }}>
                   <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <Box>
-                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 0.5 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1e8e3e' }}>
+                      <Box sx={{ flex: 1, pr: 1 }}>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 0.5, flexWrap: 'wrap' }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1e8e3e', wordBreak: 'break-word' }}>
                             {c.name}
                           </Typography>
                           <Chip
@@ -221,7 +258,7 @@ export default function StudentsClassesView({
                           />
                         </Stack>
                         {c.note && (
-                          <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                          <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', wordBreak: 'break-word' }}>
                             📝 {c.note}
                           </Typography>
                         )}
@@ -233,9 +270,7 @@ export default function StudentsClassesView({
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => {
-                            if (window.confirm(`Xóa lớp "${c.name}"?`)) onDeleteClass(c.id);
-                          }}
+                          onClick={() => promptDeleteClass(c)}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -246,8 +281,8 @@ export default function StudentsClassesView({
               ))
             )}
           </Stack>
-        ) : (
-          <TableContainer component={Paper} sx={{ border: '1px solid #dadce0', borderRadius: 1 }}>
+
+          <TableContainer component={Paper} sx={{ display: { xs: 'none', sm: 'block' }, border: '1px solid #dadce0', borderRadius: 1 }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -261,7 +296,7 @@ export default function StudentsClassesView({
                 {classes.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                      Chưa có lớp học nào. Bấm nút "+ Tạo lớp học mới" để bắt đầu.
+                      Chưa có lớp học nào. Bấm nút &quot;+ Tạo lớp học mới&quot; để bắt đầu.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -287,9 +322,7 @@ export default function StudentsClassesView({
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => {
-                            if (window.confirm(`Xóa lớp "${c.name}"?`)) onDeleteClass(c.id);
-                          }}
+                          onClick={() => promptDeleteClass(c)}
                           title="Xóa"
                         >
                           <DeleteIcon fontSize="small" />
@@ -301,8 +334,16 @@ export default function StudentsClassesView({
               </TableBody>
             </Table>
           </TableContainer>
-        )
+        </Box>
       )}
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
+      />
     </Box>
   );
 }

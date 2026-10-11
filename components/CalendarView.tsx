@@ -10,8 +10,6 @@ import {
   ButtonGroup,
   Chip,
   Paper,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import { AddIcon, AccessTimeIcon } from './Icons';
 import { ScheduleSlot, Student, ClassItem } from '@/types/database';
@@ -41,9 +39,6 @@ export default function CalendarView({
   onOpenCreate,
   onEditSlot,
 }: CalendarViewProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   const [filterType, setFilterType] = React.useState<'all' | '1-1' | 'class'>('all');
   const todayDayOfWeek = new Date().getDay();
   const [selectedMobileDay, setSelectedMobileDay] = React.useState<number | 'all'>(todayDayOfWeek);
@@ -69,7 +64,6 @@ export default function CalendarView({
 
   return (
     <Box>
-      {/* Header controls */}
       <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2, border: '1px solid #dadce0', borderRadius: 1 }}>
         <Stack
           direction={{ xs: 'column', md: 'row' }}
@@ -88,11 +82,27 @@ export default function CalendarView({
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={1}
-            sx={{ alignItems: { xs: 'stretch', sm: 'center' } }}
+            sx={{ alignItems: { xs: 'stretch', sm: 'center' }, width: { xs: '100%', sm: 'auto' }, flexShrink: 0 }}
           >
-            <ButtonGroup size="small" variant="outlined" sx={{ width: { xs: '100%', sm: 'auto' } }}>
+            <ButtonGroup
+              size="small"
+              variant="outlined"
+              sx={{
+                width: { xs: '100%', sm: 'auto' },
+                flexShrink: 0,
+                '& .MuiButton-root': {
+                  whiteSpace: 'nowrap !important',
+                  minWidth: 'fit-content',
+                },
+              }}
+            >
               <Button
-                sx={{ flex: 1 }}
+                sx={{
+                  whiteSpace: 'nowrap !important',
+                  px: 2,
+                  minWidth: 'fit-content',
+                  flex: { xs: 1, sm: 'initial' },
+                }}
                 variant={filterType === 'all' ? 'contained' : 'outlined'}
                 onClick={() => setFilterType('all')}
               >
@@ -100,7 +110,10 @@ export default function CalendarView({
               </Button>
               <Button
                 sx={{
-                  flex: 1,
+                  whiteSpace: 'nowrap !important',
+                  px: 2,
+                  minWidth: 'fit-content',
+                  flex: { xs: 1, sm: 'initial' },
                   bgcolor: filterType === '1-1' ? '#1a73e8' : 'transparent',
                   color: filterType === '1-1' ? '#fff' : '#1a73e8',
                 }}
@@ -111,7 +124,10 @@ export default function CalendarView({
               </Button>
               <Button
                 sx={{
-                  flex: 1,
+                  whiteSpace: 'nowrap !important',
+                  px: 2,
+                  minWidth: 'fit-content',
+                  flex: { xs: 1, sm: 'initial' },
                   bgcolor: filterType === 'class' ? '#1e8e3e' : 'transparent',
                   color: filterType === 'class' ? '#fff' : '#1e8e3e',
                 }}
@@ -127,203 +143,205 @@ export default function CalendarView({
               size="small"
               startIcon={<AddIcon />}
               onClick={() => onOpenCreate(typeof selectedMobileDay === 'number' ? selectedMobileDay : 1)}
-              sx={{ bgcolor: '#1a73e8', whiteSpace: 'nowrap' }}
+              sx={{
+                bgcolor: '#1a73e8',
+                whiteSpace: 'nowrap !important',
+                minWidth: 'fit-content',
+                py: { xs: 0.9, sm: 0.75 },
+                px: 2,
+                flexShrink: 0,
+              }}
             >
-              + Thêm ca dạy
+              Thêm ca dạy
             </Button>
           </Stack>
         </Stack>
       </Paper>
 
-      {/* MOBILE VIEW: Day selector tabs + Full width cards */}
-      {isMobile ? (
-        <Box>
-          {/* Day Pills Bar */}
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 0.75,
-              overflowX: 'auto',
-              pb: 1.5,
-              mb: 1.5,
-              '&::-webkit-scrollbar': { height: 4 },
-            }}
-          >
-            <Chip
-              label="Tất cả các thứ"
-              clickable
-              color={selectedMobileDay === 'all' ? 'primary' : 'default'}
-              variant={selectedMobileDay === 'all' ? 'filled' : 'outlined'}
-              onClick={() => setSelectedMobileDay('all')}
-              sx={{ fontWeight: 600, fontSize: '0.8rem', flexShrink: 0 }}
-            />
-            {DAYS_HEADER.map((d) => {
-              const isSelected = selectedMobileDay === d.day;
-              const count = slotsByDay.get(d.day)?.length || 0;
-              const isToday = d.day === todayDayOfWeek;
+      <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 0.75,
+            overflowX: 'auto',
+            pb: 1.5,
+            mb: 1.5,
+            WebkitOverflowScrolling: 'touch',
+            '&::-webkit-scrollbar': { height: 4 },
+          }}
+        >
+          <Chip
+            label="Tất cả các thứ"
+            clickable
+            color={selectedMobileDay === 'all' ? 'primary' : 'default'}
+            variant={selectedMobileDay === 'all' ? 'filled' : 'outlined'}
+            onClick={() => setSelectedMobileDay('all')}
+            sx={{ fontWeight: 600, fontSize: '0.8rem', flexShrink: 0 }}
+          />
+          {DAYS_HEADER.map((d) => {
+            const isSelected = selectedMobileDay === d.day;
+            const count = slotsByDay.get(d.day)?.length || 0;
+            const isToday = d.day === todayDayOfWeek;
 
-              return (
-                <Chip
-                  key={d.day}
-                  label={`${d.short}${count > 0 ? ` (${count})` : ''}${isToday ? ' •' : ''}`}
-                  clickable
-                  color={isSelected ? 'primary' : isToday ? 'info' : 'default'}
-                  variant={isSelected ? 'filled' : 'outlined'}
-                  onClick={() => setSelectedMobileDay(d.day)}
+            return (
+              <Chip
+                key={d.day}
+                label={`${d.short}${count > 0 ? ` (${count})` : ''}${isToday ? ' •' : ''}`}
+                clickable
+                color={isSelected ? 'primary' : isToday ? 'info' : 'default'}
+                variant={isSelected ? 'filled' : 'outlined'}
+                onClick={() => setSelectedMobileDay(d.day)}
+                sx={{
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  flexShrink: 0,
+                  borderColor: isToday && !isSelected ? '#1a73e8' : undefined,
+                }}
+              />
+            );
+          })}
+        </Box>
+
+        <Stack spacing={2}>
+          {DAYS_HEADER.filter((d) => selectedMobileDay === 'all' || selectedMobileDay === d.day).map((d) => {
+            const daySlots = slotsByDay.get(d.day) || [];
+            const isToday = d.day === todayDayOfWeek;
+
+            if (selectedMobileDay === 'all' && daySlots.length === 0) {
+              return null;
+            }
+
+            return (
+              <Card key={d.day} sx={{ border: isToday ? '2px solid #1a73e8' : '1px solid #dadce0', borderRadius: 1 }}>
+                <Box
                   sx={{
-                    fontWeight: 700,
-                    fontSize: '0.8rem',
-                    flexShrink: 0,
-                    borderColor: isToday && !isSelected ? '#1a73e8' : undefined,
+                    p: 1.25,
+                    px: 2,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    bgcolor: isToday ? '#e8f0fe' : '#f8f9fa',
+                    borderBottom: '1px solid #dadce0',
                   }}
-                />
-              );
-            })}
-          </Box>
+                >
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: isToday ? '#1a73e8' : '#202124' }}>
+                    {d.label} {isToday && '(Hôm nay)'}
+                  </Typography>
+                  <Button
+                    size="small"
+                    startIcon={<AddIcon fontSize="small" />}
+                    onClick={() => onOpenCreate(d.day)}
+                    sx={{ textTransform: 'none', py: 0.25, fontSize: '0.8rem' }}
+                  >
+                    Thêm ca
+                  </Button>
+                </Box>
 
-          {/* Render Days for Mobile */}
-          <Stack spacing={2}>
-            {DAYS_HEADER.filter((d) => selectedMobileDay === 'all' || selectedMobileDay === d.day).map((d) => {
-              const daySlots = slotsByDay.get(d.day) || [];
+                <Box sx={{ p: 1.5 }}>
+                  {daySlots.length === 0 ? (
+                    <Box
+                      sx={{
+                        py: 3,
+                        textAlign: 'center',
+                        color: '#80868b',
+                        cursor: 'pointer',
+                        borderRadius: 1,
+                        border: '1px dashed #dadce0',
+                      }}
+                      onClick={() => onOpenCreate(d.day)}
+                    >
+                      <Typography variant="body2">+ Chưa có ca dạy. Bấm để thêm</Typography>
+                    </Box>
+                  ) : (
+                    <Stack spacing={1.25}>
+                      {daySlots.map((slot) => (
+                        <SlotCard key={slot.id} slot={slot} onEdit={() => onEditSlot(slot)} isFullWidth />
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
+              </Card>
+            );
+          })}
+        </Stack>
+      </Box>
+
+      <Box sx={{ display: { xs: 'none', md: 'block' }, overflowX: 'auto' }}>
+        <Box sx={{ minWidth: 900 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1.25 }}>
+            {DAYS_HEADER.map((d) => {
               const isToday = d.day === todayDayOfWeek;
-
-              if (selectedMobileDay === 'all' && daySlots.length === 0) {
-                return null;
-              }
+              const daySlots = slotsByDay.get(d.day) || [];
 
               return (
-                <Card key={d.day} sx={{ border: isToday ? '2px solid #1a73e8' : '1px solid #dadce0', borderRadius: 1 }}>
+                <Card
+                  key={d.day}
+                  sx={{
+                    minHeight: 520,
+                    border: isToday ? '2px solid #1a73e8' : '1px solid #dadce0',
+                    borderRadius: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    bgcolor: '#ffffff',
+                  }}
+                >
                   <Box
                     sx={{
                       p: 1.25,
-                      px: 2,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
+                      textAlign: 'center',
                       bgcolor: isToday ? '#e8f0fe' : '#f8f9fa',
                       borderBottom: '1px solid #dadce0',
+                      cursor: 'pointer',
+                      '&:hover': { bgcolor: '#e8eaed' },
                     }}
+                    onClick={() => onOpenCreate(d.day)}
                   >
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: isToday ? '#1a73e8' : '#202124' }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 700,
+                        color: isToday ? '#1a73e8' : '#202124',
+                        textTransform: 'uppercase',
+                        fontSize: '0.8rem',
+                      }}
+                    >
                       {d.label} {isToday && '(Hôm nay)'}
                     </Typography>
-                    <Button
-                      size="small"
-                      startIcon={<AddIcon fontSize="small" />}
-                      onClick={() => onOpenCreate(d.day)}
-                      sx={{ textTransform: 'none', py: 0.25, fontSize: '0.8rem' }}
-                    >
-                      Thêm ca
-                    </Button>
+                    <Typography variant="caption" color="text.secondary">
+                      {daySlots.length} ca dạy
+                    </Typography>
                   </Box>
 
-                  <Box sx={{ p: 1.5 }}>
+                  <Box sx={{ p: 1, flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {daySlots.length === 0 ? (
                       <Box
                         sx={{
-                          py: 3,
-                          textAlign: 'center',
-                          color: '#80868b',
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#bdc1c6',
                           cursor: 'pointer',
                           borderRadius: 1,
-                          border: '1px dashed #dadce0',
+                          border: '1px dashed #e8eaed',
+                          '&:hover': { bgcolor: '#f8f9fa', borderColor: '#dadce0', color: '#5f6368' },
                         }}
                         onClick={() => onOpenCreate(d.day)}
                       >
-                        <Typography variant="body2">+ Chưa có ca dạy. Bấm để thêm</Typography>
+                        <Typography variant="caption">+ Thêm ca</Typography>
                       </Box>
                     ) : (
-                      <Stack spacing={1.25}>
-                        {daySlots.map((slot) => (
-                          <SlotCard key={slot.id} slot={slot} onEdit={() => onEditSlot(slot)} isFullWidth />
-                        ))}
-                      </Stack>
+                      daySlots.map((slot) => (
+                        <SlotCard key={slot.id} slot={slot} onEdit={() => onEditSlot(slot)} />
+                      ))
                     )}
                   </Box>
                 </Card>
               );
             })}
-          </Stack>
-        </Box>
-      ) : (
-        /* DESKTOP VIEW: 7 Columns Grid */
-        <Box sx={{ overflowX: 'auto' }}>
-          <Box sx={{ minWidth: 900 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1.25 }}>
-              {DAYS_HEADER.map((d) => {
-                const isToday = d.day === todayDayOfWeek;
-                const daySlots = slotsByDay.get(d.day) || [];
-
-                return (
-                  <Card
-                    key={d.day}
-                    sx={{
-                      minHeight: 520,
-                      border: isToday ? '2px solid #1a73e8' : '1px solid #dadce0',
-                      borderRadius: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      bgcolor: '#ffffff',
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        p: 1.25,
-                        textAlign: 'center',
-                        bgcolor: isToday ? '#e8f0fe' : '#f8f9fa',
-                        borderBottom: '1px solid #dadce0',
-                        cursor: 'pointer',
-                        '&:hover': { bgcolor: '#e8eaed' },
-                      }}
-                      onClick={() => onOpenCreate(d.day)}
-                    >
-                      <Typography
-                        variant="subtitle2"
-                        sx={{
-                          fontWeight: 700,
-                          color: isToday ? '#1a73e8' : '#202124',
-                          textTransform: 'uppercase',
-                          fontSize: '0.8rem',
-                        }}
-                      >
-                        {d.label} {isToday && '(Hôm nay)'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {daySlots.length} ca dạy
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ p: 1, flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      {daySlots.length === 0 ? (
-                        <Box
-                          sx={{
-                            flex: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#bdc1c6',
-                            cursor: 'pointer',
-                            borderRadius: 1,
-                            border: '1px dashed #e8eaed',
-                            '&:hover': { bgcolor: '#f8f9fa', borderColor: '#dadce0', color: '#5f6368' },
-                          }}
-                          onClick={() => onOpenCreate(d.day)}
-                        >
-                          <Typography variant="caption">+ Thêm ca</Typography>
-                        </Box>
-                      ) : (
-                        daySlots.map((slot) => (
-                          <SlotCard key={slot.id} slot={slot} onEdit={() => onEditSlot(slot)} />
-                        ))
-                      )}
-                    </Box>
-                  </Card>
-                );
-              })}
-            </Box>
           </Box>
         </Box>
-      )}
+      </Box>
     </Box>
   );
 }

@@ -51,7 +51,19 @@ export default function StudentDialog({ open, onClose, onSave, student }: Studen
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      sx={{
+        '& .MuiDialog-paper': {
+          m: { xs: 2, sm: 3 },
+          width: '100%',
+          maxWidth: { xs: 'calc(100% - 32px)', sm: 520, md: 560 },
+        },
+      }}
+    >
       <form onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 600 }}>
           {student ? 'Chỉnh sửa học viên' : 'Thêm học viên mới'}

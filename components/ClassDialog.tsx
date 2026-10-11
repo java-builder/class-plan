@@ -74,7 +74,19 @@ export default function ClassDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      sx={{
+        '& .MuiDialog-paper': {
+          m: { xs: 2, sm: 3 },
+          width: '100%',
+          maxWidth: { xs: 'calc(100% - 32px)', sm: 540, md: 580 },
+        },
+      }}
+    >
       <form onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 600 }}>
           {classItem ? 'Chỉnh sửa lớp học' : 'Tạo lớp học mới'}

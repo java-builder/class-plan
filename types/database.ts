@@ -91,6 +91,16 @@ export interface Database {
         Insert: Omit<Course, 'id' | 'created_at' | 'chapters'> & { id?: string; created_at?: string };
         Update: Partial<Omit<Course, 'id' | 'chapters'>>;
       };
+      chapters: {
+        Row: Chapter;
+        Insert: Omit<Chapter, 'id' | 'topics'> & { id?: string; created_at?: string };
+        Update: Partial<Omit<Chapter, 'id' | 'topics'>>;
+      };
+      topics: {
+        Row: Topic;
+        Insert: Omit<Topic, 'id'> & { id?: string; created_at?: string };
+        Update: Partial<Omit<Topic, 'id'>>;
+      };
     };
   };
 }

@@ -190,16 +190,18 @@ export default function HomePage() {
 
         </Toolbar>
 
-        <Box sx={{ borderTop: '1px solid #e8eaed', px: { xs: 1, sm: 3 }, bgcolor: '#ffffff' }}>
+        <Box sx={{ borderTop: '1px solid #e8eaed', px: { xs: 0.5, sm: 3 }, bgcolor: '#ffffff' }}>
           <Tabs
             value={currentTab}
             onChange={(_, val) => setCurrentTab(val)}
             variant="scrollable"
             scrollButtons="auto"
+            allowScrollButtonsMobile
             sx={{
               minHeight: 48,
               '& .MuiTab-root': {
                 minHeight: 48,
+                px: { xs: 1.25, sm: 2 },
                 textTransform: 'none',
                 fontWeight: 600,
                 fontSize: { xs: '0.8rem', sm: '0.9rem' },
@@ -212,9 +214,29 @@ export default function HomePage() {
               },
             }}
           >
-            <Tab icon={<CalendarMonthIcon sx={{ fontSize: 18, mr: 0.5 }} />} iconPosition="start" label="Lịch Dạy Cố Định" />
-            <Tab icon={<SchoolIcon sx={{ fontSize: 18, mr: 0.5 }} />} iconPosition="start" label="Lộ Trình & Bài Học" />
-            <Tab icon={<PeopleIcon sx={{ fontSize: 18, mr: 0.5 }} />} iconPosition="start" label="Học Viên & Lớp" />
+            <Tab
+              icon={<CalendarMonthIcon sx={{ fontSize: 18, mr: { xs: 0.25, sm: 0.5 } }} />}
+              iconPosition="start"
+              label={
+                <Box component="span">
+                  Lịch Dạy<Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}> Cố Định</Box>
+                </Box>
+              }
+            />
+            <Tab
+              icon={<SchoolIcon sx={{ fontSize: 18, mr: { xs: 0.25, sm: 0.5 } }} />}
+              iconPosition="start"
+              label={
+                <Box component="span">
+                  Lộ Trình<Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}> & Bài Học</Box>
+                </Box>
+              }
+            />
+            <Tab
+              icon={<PeopleIcon sx={{ fontSize: 18, mr: { xs: 0.25, sm: 0.5 } }} />}
+              iconPosition="start"
+              label="Học Viên & Lớp"
+            />
           </Tabs>
         </Box>
       </AppBar>

@@ -27,6 +27,7 @@ import {
 } from '@mui/material';
 import { Course } from '@/types/database';
 import { AddIcon, DeleteIcon, SchoolIcon } from './Icons';
+import ConfirmDialog from './ConfirmDialog';
 
 interface CurriculumViewProps {
   courses: Course[];
@@ -58,6 +59,17 @@ export default function CurriculumView({
   const [newChapterTitle, setNewChapterTitle] = React.useState('');
   const [activeChapterIdForTopic, setActiveChapterIdForTopic] = React.useState<string | null>(null);
   const [newTopicTitle, setNewTopicTitle] = React.useState('');
+  const [confirmDialog, setConfirmDialog] = React.useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => Promise<void>;
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    onConfirm: async () => {},
+  });
 
   React.useEffect(() => {
     if (courses.length > 0 && (!selectedCourseId || !courses.find((c) => c.id === selectedCourseId))) {
@@ -88,6 +100,45 @@ export default function CurriculumView({
     setActiveChapterIdForTopic(null);
   };
 
+  const promptDeleteCourse = () => {
+    if (!activeCourse) return;
+    setConfirmDialog({
+      open: true,
+      title: 'Xóa khóa học',
+      message: `Bạn có chắc chắn muốn xóa khóa học "${activeCourse.name}" và toàn bộ bài giảng bên trong?`,
+      onConfirm: async () => {
+        await onDeleteCourse(activeCourse.id);
+        setConfirmDialog((prev) => ({ ...prev, open: false }));
+      },
+    });
+  };
+
+  const promptDeleteChapter = (chapterId: string, chapterTitle: string) => {
+    if (!activeCourse) return;
+    setConfirmDialog({
+      open: true,
+      title: 'Xóa Chapter',
+      message: `Bạn có chắc chắn muốn xóa chapter "${chapterTitle}" và tất cả bài học trong chapter này?`,
+      onConfirm: async () => {
+        await onDeleteChapter(activeCourse.id, chapterId);
+        setConfirmDialog((prev) => ({ ...prev, open: false }));
+      },
+    });
+  };
+
+  const promptDeleteTopic = (chapterId: string, topicId: string, topicTitle: string) => {
+    if (!activeCourse) return;
+    setConfirmDialog({
+      open: true,
+      title: 'Xóa bài học',
+      message: `Bạn có chắc chắn muốn xóa bài học "${topicTitle}"?`,
+      onConfirm: async () => {
+        await onDeleteTopic(activeCourse.id, chapterId, topicId);
+        setConfirmDialog((prev) => ({ ...prev, open: false }));
+      },
+    });
+  };
+
   return (
     <Box sx={{ maxWidth: 950, mx: 'auto' }}>
       <Stack
@@ -111,7 +162,7 @@ export default function CurriculumView({
           onClick={() => setOpenCourseDialog(true)}
           sx={{ bgcolor: '#1a73e8', alignSelf: { xs: 'stretch', sm: 'auto' } }}
         >
-          + Thêm khóa học
+          Thêm khóa học
         </Button>
       </Stack>
 
@@ -123,6 +174,7 @@ export default function CurriculumView({
             overflowX: 'auto',
             alignItems: 'center',
             pb: { xs: 0.5, sm: 0 },
+            WebkitOverflowScrolling: 'touch',
             '&::-webkit-scrollbar': { height: 4 },
           }}
         >
@@ -167,11 +219,7 @@ export default function CurriculumView({
             <IconButton
               size="small"
               color="error"
-              onClick={() => {
-                if (window.confirm(`Xóa khóa học "${activeCourse.name}"?`)) {
-                  onDeleteCourse(activeCourse.id);
-                }
-              }}
+              onClick={promptDeleteCourse}
               title="Xóa khóa học"
             >
               <DeleteIcon fontSize="small" />
@@ -246,10 +294,22 @@ export default function CurriculumView({
                     >
                       <Stack
                         direction="row"
-                        sx={{ width: '100%', justifyContent: 'space-between', alignItems: 'center', pr: 1 }}
+                        sx={{ width: '100%', justifyContent: 'space-between', alignItems: 'center', pr: 0.5 }}
                       >
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 0.5, sm: 1 }} sx={{ alignItems: { sm: 'center' } }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1a73e8', fontSize: '0.9rem' }}>
+                        <Stack
+                          direction={{ xs: 'column', sm: 'row' }}
+                          spacing={{ xs: 0.5, sm: 1 }}
+                          sx={{ alignItems: { sm: 'center' }, flex: 1, minWidth: 0, pr: 1 }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
+                              fontWeight: 700,
+                              color: '#1a73e8',
+                              fontSize: '0.9rem',
+                              wordBreak: 'break-word',
+                            }}
+                          >
                             {chap.title}
                           </Typography>
                           <Chip
@@ -262,6 +322,7 @@ export default function CurriculumView({
                               bgcolor: completedTopics === totalTopics && totalTopics > 0 ? '#e6f4ea' : '#e8eaed',
                               color: completedTopics === totalTopics && totalTopics > 0 ? '#1e8e3e' : '#5f6368',
                               alignSelf: 'flex-start',
+                              flexShrink: 0,
                             }}
                           />
                         </Stack>
@@ -272,9 +333,7 @@ export default function CurriculumView({
                           color="inherit"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (window.confirm(`Xóa chapter "${chap.title}"?`)) {
-                              onDeleteChapter(activeCourse.id, chap.id);
-                            }
+                            promptDeleteChapter(chap.id, chap.title);
                           }}
                           title="Xóa chapter"
                         >
@@ -315,12 +374,15 @@ export default function CurriculumView({
                                   fontSize: { xs: '0.85rem', sm: '0.9rem' },
                                   fontWeight: topic.is_completed ? 400 : 500,
                                   color: topic.is_completed ? '#5f6368' : '#202124',
-                                  sx: { textDecoration: topic.is_completed ? 'line-through' : 'none' },
+                                  sx: {
+                                    textDecoration: topic.is_completed ? 'line-through' : 'none',
+                                    wordBreak: 'break-word',
+                                  },
                                 }}
                               />
                               <IconButton
                                 size="small"
-                                onClick={() => onDeleteTopic(activeCourse.id, chap.id, topic.id)}
+                                onClick={() => promptDeleteTopic(chap.id, topic.id, topic.title)}
                                 title="Xóa bài này"
                               >
                                 <DeleteIcon sx={{ fontSize: 16, color: '#bdc1c6' }} />
@@ -362,7 +424,7 @@ export default function CurriculumView({
                           }}
                           sx={{ textTransform: 'none', color: '#1a73e8', fontWeight: 600, fontSize: '0.85rem' }}
                         >
-                          + Thêm bài học mới
+                          Thêm bài học mới
                         </Button>
                       )}
                     </AccordionDetails>
@@ -381,7 +443,19 @@ export default function CurriculumView({
         </Card>
       )}
 
-      <Dialog open={openCourseDialog} onClose={() => setOpenCourseDialog(false)} maxWidth="xs" fullWidth>
+      <Dialog
+        open={openCourseDialog}
+        onClose={() => setOpenCourseDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            m: { xs: 2, sm: 3 },
+            width: '100%',
+            maxWidth: { xs: 'calc(100% - 32px)', sm: 540, md: 600 },
+          },
+        }}
+      >
         <DialogTitle sx={{ fontWeight: 600 }}>Tạo khóa học mới</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ pt: 1 }}>
@@ -415,6 +489,14 @@ export default function CurriculumView({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
+      />
     </Box>
   );
 }

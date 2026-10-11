@@ -36,7 +36,6 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refresh auth token
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -47,14 +46,12 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/api') ||
     request.nextUrl.pathname.includes('.');
 
-  // Protected route checking: if user not logged in and not on login page
   if (!user && !isAuthPage && !isPublicAsset) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  // If already logged in and visiting login page, redirect to home
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
